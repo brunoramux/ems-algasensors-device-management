@@ -84,4 +84,59 @@ public class SensorController {
                 .enabled(sensor.getEnabled())
                 .build();
     }
+
+    @PutMapping("/{sensorId}")
+    public SensorOutput update(@PathVariable TSID sensorId, @RequestBody SensorInput input){
+        Sensor sensor = sensorRepository.findById(new SensorId(sensorId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        sensor.setName(input.getName());
+        sensor.setIp(input.getIp());
+        sensor.setLocation(input.getLocation());
+        sensor.setProtocol(input.getProtocol());
+        sensor.setModel(input.getModel());
+
+        sensor = sensorRepository.saveAndFlush(sensor);
+
+        return SensorOutput.builder()
+                .id(sensor.getId().getValue())
+                .name(sensor.getName())
+                .ip(sensor.getIp())
+                .location(sensor.getLocation())
+                .protocol(sensor.getProtocol())
+                .model(sensor.getModel())
+                .enabled(sensor.getEnabled())
+                .build();
+    }
+
+
+    @DeleteMapping("/{sensorId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable TSID sensorId){
+        Sensor sensor = sensorRepository.findById(new SensorId(sensorId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        sensorRepository.delete(sensor);
+    }
+
+    @PutMapping("/{sensorId}/enable")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void enable(@PathVariable TSID sensorId){
+        Sensor sensor = sensorRepository.findById(new SensorId(sensorId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        sensor.setEnabled(true);
+
+        sensorRepository.saveAndFlush(sensor);
+    }
+
+    @DeleteMapping("/{sensorId}/enable")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void disable(@PathVariable TSID sensorId){
+        Sensor sensor = sensorRepository.findById(new SensorId(sensorId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        sensor.setEnabled(false);
+
+        sensorRepository.saveAndFlush(sensor);
+    }
 }
