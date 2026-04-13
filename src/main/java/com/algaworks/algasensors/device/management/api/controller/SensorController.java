@@ -1,6 +1,9 @@
 package com.algaworks.algasensors.device.management.api.controller;
 
+import com.algaworks.algasensors.device.management.api.client.SensorMonitoringClient;
+import com.algaworks.algasensors.device.management.api.model.SensorDetailOutput;
 import com.algaworks.algasensors.device.management.api.model.SensorInput;
+import com.algaworks.algasensors.device.management.api.model.SensorMonitoringOutput;
 import com.algaworks.algasensors.device.management.api.model.SensorOutput;
 import com.algaworks.algasensors.device.management.common.IdGenerator;
 import com.algaworks.algasensors.device.management.domain.model.Sensor;
@@ -21,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class SensorController {
 
     private final SensorRepository sensorRepository;
+    private final SensorMonitoringClient sensorMonitoringClient;
 
     @GetMapping
     public Page<SensorOutput> search(@PageableDefault Pageable pageable) {
@@ -53,6 +57,29 @@ public class SensorController {
                 .protocol(sensor.getProtocol())
                 .model(sensor.getModel())
                 .enabled(sensor.getEnabled())
+                .build();
+    }
+
+    @GetMapping("{sensorId}/detail")
+    public SensorDetailOutput getOneWithDetail(@PathVariable TSID sensorId){
+        Sensor sensor = sensorRepository.findById(new SensorId(sensorId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        SensorOutput sensorOutput = SensorOutput.builder()
+                .id(sensor.getId().getValue())
+                .name(sensor.getName())
+                .ip(sensor.getIp())
+                .location(sensor.getLocation())
+                .protocol(sensor.getProtocol())
+                .model(sensor.getModel())
+                .enabled(sensor.getEnabled())
+                .build();
+
+        SensorMonitoringOutput monitoringOutput = sensorMonitoringClient.getDetail(sensorId);
+
+        return SensorDetailOutput.builder()
+                .monitoring(monitoringOutput)
+                .sensor(sensorOutput)
                 .build();
     }
 
@@ -116,6 +143,8 @@ public class SensorController {
         Sensor sensor = sensorRepository.findById(new SensorId(sensorId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         sensorRepository.delete(sensor);
+
+        sensorMonitoringClient.disableMonitoring(sensorId);
     }
 
     @PutMapping("/{sensorId}/enable")
@@ -127,6 +156,8 @@ public class SensorController {
         sensor.setEnabled(true);
 
         sensorRepository.saveAndFlush(sensor);
+
+        sensorMonitoringClient.enableMonitoring(sensorId);
     }
 
     @DeleteMapping("/{sensorId}/enable")
@@ -138,5 +169,7 @@ public class SensorController {
         sensor.setEnabled(false);
 
         sensorRepository.saveAndFlush(sensor);
+
+        sensorMonitoringClient.disableMonitoring(sensorId);
     }
 }
